@@ -77,3 +77,16 @@ CREATE TABLE IF NOT EXISTS issued_totals (
     inventory_id TEXT NOT NULL UNIQUE REFERENCES inventories(inventory_id),
     body TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS paper_evidence (
+    inventory_id TEXT PRIMARY KEY NOT NULL REFERENCES inventories(inventory_id),
+    paper_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS paper_evidence_rows (
+    inventory_id TEXT NOT NULL REFERENCES paper_evidence(inventory_id),
+    line_no INTEGER NOT NULL CHECK (line_no > 0),
+    operation_id TEXT NOT NULL,
+    sequence INTEGER NOT NULL,
+    PRIMARY KEY (inventory_id, line_no)
+);

@@ -8,7 +8,7 @@ from handling.segments import get_segment, require_open_segment
 from handling.splits import prepare_split
 from intake.batches import get_batch
 from intake.weighing import parse_identifier, parse_net_grams, record_rows
-from storage import decimal_integer, integer_text, write_transaction
+from storage import decimal_integer, integer_text, require_transaction, write_transaction
 
 
 @dataclass(frozen=True)
@@ -124,19 +124,30 @@ def record_operation(db: sqlite3.Connection, segment_id, operation_id, kind, inp
     input_nodes, ports = _shape(kind, inputs, outputs)
     with write_transaction(db):
         require_open_segment(db, segment_id)
-        if db.execute(
-            'SELECT 1 FROM operations WHERE segment_id = ? AND operation_id = ?', (segment_id, operation_id),
-        ).fetchone():
-            raise ValueError(f'operation {operation_id!r} already exists in this segment')
-        sources = tuple(_resolve_input(db, segment_id, node) for node in input_nodes)
-        check_node_identities(input_nodes, ports, _occupied_outputs(db, segment_id, ports))
-        check_conservation((source.net_grams for source in sources), ports)
-        sequence = db.execute(
-            'SELECT COALESCE(MAX(sequence), 0) + 1 FROM operations WHERE segment_id = ?', (segment_id,),
-        ).fetchone()[0]
-        record = OperationRecord(sequence, operation_id, kind, input_nodes, ports)
-        _store_operation(db, segment_id, record, sources)
+        record = register_operation(db, segment_id, operation_id, kind, input_nodes, ports)
         return record
+
+
+def register_operation(
+    db: sqlite3.Connection, segment_id, operation_id, kind, input_nodes, ports,
+) -> OperationRecord:
+    """Store one validated operation using the caller's active transaction (V1 rules)."""
+    require_transaction(db)
+    segment_id = parse_identifier(segment_id, 'segment ID')
+    operation_id = parse_identifier(operation_id, 'operation ID')
+    if db.execute(
+        'SELECT 1 FROM operations WHERE segment_id = ? AND operation_id = ?', (segment_id, operation_id),
+    ).fetchone():
+        raise ValueError(f'operation {operation_id!r} already exists in this segment')
+    sources = tuple(_resolve_input(db, segment_id, node) for node in input_nodes)
+    check_node_identities(tuple(input_nodes), ports, _occupied_outputs(db, segment_id, ports))
+    check_conservation((source.net_grams for source in sources), ports)
+    sequence = db.execute(
+        'SELECT COALESCE(MAX(sequence), 0) + 1 FROM operations WHERE segment_id = ?', (segment_id,),
+    ).fetchone()[0]
+    record = OperationRecord(sequence, operation_id, kind, tuple(input_nodes), ports)
+    _store_operation(db, segment_id, record, sources)
+    return record
 
 
 def load_operation_log(db: sqlite3.Connection, segment_id: str, *, through_sequence: int | None = None) -> OperationLog:

@@ -5,15 +5,28 @@ from handling.replay import replay_segment
 from handling.segments import require_open_segment, seal_segment
 from intake.weighing import parse_identifier
 from inventory.observations import read_observations
+from inventory.paper import (
+    PaperCloseResult, PaperEvidence, PaperLineEvidence, close_from_paper as _close_from_paper,
+)
 from inventory.reconcile import InventoryDifference, compare_bag_ledger
 from inventory.snapshot import InventorySnapshot, save_snapshot
 from storage import write_transaction
+
+
+__all__ = [
+    'CloseResult', 'PaperCloseResult', 'PaperEvidence', 'PaperLineEvidence',
+    'close_from_paper', 'close_inventory',
+]
 
 
 @dataclass(frozen=True)
 class CloseResult:
     snapshot: InventorySnapshot | None
     difference: InventoryDifference
+
+
+def close_from_paper(db, segment_id, inventory_id, paper_id, rows, observations) -> PaperCloseResult:
+    return _close_from_paper(db, segment_id, inventory_id, paper_id, rows, observations)
 
 
 def close_inventory(db: sqlite3.Connection, segment_id, observations, *, inventory_id=None) -> CloseResult:

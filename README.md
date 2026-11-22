@@ -34,8 +34,8 @@ python3 -B demo.py
 | `intake.imports` | `import_weighings(db, path, source=...)` 逐笔接纳本地称量数组，返回按原行序排列的实收和拒收。缺省出处使用文件名。 |
 | `handling.segments` | `open_segment(db, segment_id)` 建立或读取操作段。再次调用可读取已关闭状态。 |
 | `handling.operations` | `record_operation(db, segment_id, operation_id, kind, inputs, outputs)` 返回有序操作。`kind` 为 `mix` 或 `split`，投入为节点号，产出为 `(节点号, 整克数)`。`load_operation_log` 可按段和可选上限 `through_sequence` 读取操作与实际投入原批。 |
-| `inventory.close` | `close_inventory(db, segment_id, observations, inventory_id=...)` 接收 `(袋号, 整克数)` 序列，返回 `CloseResult`。盘点号缺省取段号。 |
-| `inventory.readback` | `read_inventory(db, inventory_id)` 返回固定盘点，未知时返回 `None`。 |
+| `inventory.close` | `close_inventory(db, segment_id, observations, inventory_id=...)` 接收 `(袋号, 整克数)` 序列，返回 `CloseResult`。盘点号缺省取段号。`close_from_paper(db, segment_id, inventory_id, paper_id, rows, observations)` 解释补录单并返回 `status`、`snapshot`、`evidence`；详见 PAPER.md。 |
+| `inventory.readback` | `read_inventory(db, inventory_id)` 返回固定盘点，未知时返回 `None`。`read_paper_evidence(db, inventory_id)` 按盘点号返回纸单依据，未知或普通封定返回 `None`。 |
 | `exchange.issue` | `issue_totals(db, inventory_id)` 返回固定 `TotalsPiece`，包号由 `totals:` 和盘点号组成。未知或未封定盘点报 `LookupError`。 |
 | `exchange.format` | `encode_totals(piece)` 返回 JSON 正文，`decode_totals(body)` 读取正文。 |
 | `exchange.receive` | `receive_totals(db, piece_id, inventory_id, body)` 首次接纳或返回原接纳号。同号异内容报 `PieceConflict`。 |

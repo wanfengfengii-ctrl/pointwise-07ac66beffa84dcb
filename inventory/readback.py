@@ -1,8 +1,13 @@
 import sqlite3
 
 from intake.weighing import parse_identifier
+from inventory.paper import PaperEvidence, read_paper_evidence as _read_paper_evidence
 from inventory.snapshot import InventorySnapshot
 from storage import decimal_integer
+
+
+def read_paper_evidence(db: sqlite3.Connection, inventory_id: str) -> PaperEvidence | None:
+    return _read_paper_evidence(db, inventory_id)
 
 
 def read_inventory(db: sqlite3.Connection, inventory_id: str) -> InventorySnapshot | None:
